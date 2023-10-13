@@ -6,6 +6,7 @@ void genRotationMatrix(float dest[], float rX, float rY, float rZ);
 void multiplyVectorMatrix(float vector[], float matrix[], int accessStart, float dest[], int destStart);
 void draw(float data[],const int indexes[], int len, int indexBound);
 void multiplyVectorScalar(float vector[], float scalar, int accessStart);
+void addToAllVectorElements(float vector[], float factor, int accessStart);
 
 int main() {
     float rotationMatrix[16];
@@ -29,7 +30,8 @@ int main() {
         genRotationMatrix(rotationMatrix,rX,rY,rZ);
         for (int i = 0; i < 32; i+=4) {
             multiplyVectorMatrix(cube,rotationMatrix,i,cubeBuffer,i);
-            //multiplyVectorScalar(cubeBuffer,0.7F,i);
+            //addToAllVectorElements(cubeBuffer,1,i);
+            multiplyVectorScalar(cubeBuffer,1.0F/3.0F,i);
         }
         draw(cubeBuffer,lineIndexes,16,6);
         rX += 0.05F;
@@ -45,8 +47,14 @@ void multiplyVectorMatrix(float vector[], float matrix[], int accessStart, float
     }
 }
 
+void addToAllVectorElements(float vector[], float factor, int accessStart){
+    for (int i = 0; i < 3; ++i) {
+        vector[i+accessStart]+=factor;
+    }
+}
+
 void multiplyVectorScalar(float vector[], float scalar, int accessStart){
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 3; ++i) {
         vector[i+accessStart]*=scalar;
     }
 }
@@ -85,17 +93,16 @@ void draw(float data[],const int indexes[], int len, int indexBound){
         float x1 = std::fmin(data[indA],data[indB]), x2 = std::fmax(data[indA],data[indB]);
         float y1 = std::fmin(data[indA+1],data[indB+1]), y2 = std::fmin(data[indA+1],data[indB+1]);
         float dX = x2 - x1, dY = y2 - y1;
-        for(float l = x1; l < x2;l+=0.5F){
-            float y = y1 + dY * (l - x1)/dX;
-            buffer[(int)l][(int)y] = '0';
+        for(float x = x1; x < x2; x+=0.5F){
+            float y = y1 + dY * (x - x1) / dX;
+            y = fmin(fmax(y,0),len);
+            x = fmin(fmax(x,0),len);
+            buffer[(int)x][(int)y] = '0';
         }
+        std::cout << x1 << ", " << y1 << " : " << x2 << ", " << y2 << std::endl;
     }
-    printf("RENDER:\n");
-    for (int i = 0; i < len; ++i) {
-        for (int j = 0; j < len; ++j) {
-            std::cout<<buffer[i][j]<<" ";
-        }
-        printf("\n");
-    }
+
+    return;
+
 }
 
