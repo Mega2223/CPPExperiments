@@ -1,12 +1,17 @@
 #include <cmath>
 #include <iostream>
+#include <Windows.h>
+
+static const int ARRAY_LEN = 16;
 
 void draw(float data[], int len, float boundX, float boundY);
 void genRotationMatrix(float dest[], float rX, float rY, float rZ);
 void multiplyVectorMatrix(float vector[], float matrix[], int accessStart, float dest[], int destStart);
-void draw(float data[],const int indexes[], int len, int indexBound);
+void draw(float data[], const int indexes[], const int len, int indexBound);
 void multiplyVectorScalar(float vector[], float scalar, int accessStart);
 void addToAllVectorElements(float vector[], float factor, int accessStart);
+
+static HANDLE console;
 
 int main() {
     float rotationMatrix[16];
@@ -21,22 +26,27 @@ int main() {
             1,-1,1,0,
     };
     int lineIndexes[] = {
-        0,1,2,2,3,4
+        0,1,1,5,5,4,4,0
     };
+    int indexBound = 8;
+    console = CreateConsoleScreenBuffer(0,0x2,0,CONSOLE_TEXTMODE_BUFFER,0);
+    SetConsoleActiveScreenBuffer(console);
 
     float cubeBuffer[32];
     float rX = 0,rY = 0,rZ = 0;
-    for(int itneration = 0; itneration < 60000; itneration++){
+    wchar_t * screen = new wchar_t[ARRAY_LEN*ARRAY_LEN];
+    DWORD dwBytesWritten = 0;
+    for(int itneration = 0; itneration < 1000 || true; itneration++){
         genRotationMatrix(rotationMatrix,rX,rY,rZ);
         for (int i = 0; i < 32; i+=4) {
             multiplyVectorMatrix(cube,rotationMatrix,i,cubeBuffer,i);
-            //addToAllVectorElements(cubeBuffer,1,i);
-            multiplyVectorScalar(cubeBuffer,1.0F/3.0F,i);
+            addToAllVectorElements(cubeBuffer,2.5F,i);
+            multiplyVectorScalar(cubeBuffer, .02F * ARRAY_LEN, i);
         }
-        draw(cubeBuffer,lineIndexes,16,6);
-        rX += 0.05F;
-        rY += 0.05F;
-        rZ += 0.05F;
+        draw(cubeBuffer, lineIndexes, ARRAY_LEN, indexBound);
+        rX += 0.005F;
+        rY += 0.005F;
+        rZ += 0.005F;
     }
 }
 
@@ -81,28 +91,57 @@ void genRotationMatrix(float dest[], float rX, float rY, float rZ){
     dest[15] = 1;
 }
 
-void draw(float data[],const int indexes[], int len, int indexBound){
+void draw(float data[], const int indexes[], const int len, int indexBound) {
     char buffer[len][len];
     for (int i = 0; i < len; ++i) {
         for (int j = 0; j < len; ++j) {
             buffer[i][j] = '-';
         }
     }
-    for (int i = 0; i < indexBound; i+=2) {
+    /*for (int i = 0; i < indexBound; i+=2) {
         int indA = indexes[i]*4, indB = indexes[i+1]*4;
         float x1 = std::fmin(data[indA],data[indB]), x2 = std::fmax(data[indA],data[indB]);
         float y1 = std::fmin(data[indA+1],data[indB+1]), y2 = std::fmin(data[indA+1],data[indB+1]);
         float dX = x2 - x1, dY = y2 - y1;
-        for(float x = x1; x < x2; x+=0.5F){
+        for(float x = x1; x < x2; x+=.5F){
             float y = y1 + dY * (x - x1) / dX;
             y = fmin(fmax(y,0),len);
             x = fmin(fmax(x,0),len);
             buffer[(int)x][(int)y] = '0';
         }
-        std::cout << x1 << ", " << y1 << " : " << x2 << ", " << y2 << std::endl;
+        std::cout << "v: " << x1 << ", " << y1 << " : " << x2 << ", " << y2 << std::endl;
+    }*/
+
+    for(int i = 0; i < indexBound; i+=2){
+        int i1 = indexes[i]*4, i2 = indexes[i+1]*4;
+        //std::cout << "indexes: " << i1 << "," << i2 << std::endl;
+        float l1x = data[i1], l1y = data[i1 + 1], l2x = data[i2], l2y = data[i2 + 1];
+        //std::cout << "index data: " << l1x << ":" << l1y << " -> "  << l2x << ":" << l2y  << std::endl;
+        l1x*=0.5F*len;l1y*=0.5F*len;l2x*=0.5F*len;l2y*=0.5F*len;
+        float x1 = std::min(l1x,l2x),y1 = std::min(l2x,l2y),x2 = std::max(l1x,l2x),y2 = std::max(l1y,l2y);
+
+        float dx = x2-x1, dy = y2-y1;
+        if(dx>dy){
+            for (int x = x1; x < x2; ++x) {
+                float y = y1 + dy * (x - x1)/dx;
+                if(x >= len || y >= len || x < 0 || y < 0){continue;}
+                buffer[(int)x][(int)y] = 'G';
+            }
+        } else {
+            for (int y = y1; y < y2; ++y) {
+                float x = x1 + dx * (y - y1)/dy;
+                if(x >= len || y >= len || x < 0 || y < 0){continue;}
+                buffer[(int)x][(int)y] = 'G';
+            }
+        }
     }
 
-    return;
-
+    //std::cout << "\e[A (0x1B 0x91 0x41)" << "H" << std::endl;
+    for (int x = 0; x < len; ++x) {
+        for (int y = 0; y < len; ++y) {
+            std::cout << buffer[x][y] << buffer[x][y];
+        }
+        std::cout << std::endl;
+    }
+    //std::cout.flush();*/
 }
-
