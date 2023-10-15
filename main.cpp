@@ -34,9 +34,6 @@ int main() {
     const int indexBound = 24;
     HWND consoleWindow = GetConsoleWindow();
     hdc = GetDC(consoleWindow);
-    for (int i = 0; i < 100; ++i) {
-        SetPixel(hdc,i,100,RGB(255,255,0));
-    }
 
     float cubeBuffer[32];
     float rX = 0,rY = 0,rZ = 0;
@@ -55,9 +52,9 @@ int main() {
         }
         //debugArray(cubeBuffer,32);
         draw(cubeBuffer, lineIndexes, indexBound,color);
-        rX += 0.009F;
-        rY += 0.012F;
-        rZ += 0.015F;
+        rX += (std::sin((float)itneration / 100.F ))/100.F;
+        rY += (.4F + std::cos((float)itneration / 120.3F ))/20.F;
+        rZ += (0.16F - std::cos((float)itneration / 50.1235F ))/100.F;
         std::this_thread::sleep_for(std::chrono::milliseconds (10));
         draw(cubeBuffer, lineIndexes, indexBound,clearColor);
     }
