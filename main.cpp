@@ -8,10 +8,11 @@ static HDC hdc;
 
 void genRotationMatrix(float dest[], float rX, float rY, float rZ);
 void multiplyVectorMatrix(const float vector[], const float matrix[], int accessStart, float dest[], int destStart);
-void draw(float data[], const int indexes[], int indexBound, COLORREF color);
+void draw(const float data[], const int indexes[], int indexBound, COLORREF color);
 void multiplyVectorScalar(float vector[], float scalar, int accessStart);
 void addToAllVectorElements(float vector[], float factor, int accessStart);
-void fillArray(float array[], int len);
+void emptyArray(float array[], int len);
+void debugArray(const float arr[], int len);
 
 int main() {
     float rotationMatrix[16];
@@ -26,9 +27,11 @@ int main() {
             1,-1,1,0,
     };
     int lineIndexes[] = {
-        0,1,1,5,5,4,4,0
+        0,1,1,2,2,3,3,0,
+        4,5,5,6,6,7,7,4,
+        0,4,1,5,2,6,3,7
     };
-    const int indexBound = 8;
+    const int indexBound = 24;
     HWND consoleWindow = GetConsoleWindow();
     hdc = GetDC(consoleWindow);
     for (int i = 0; i < 100; ++i) {
@@ -42,24 +45,26 @@ int main() {
 
 
     for(int itneration = 0; itneration < 10000; ++itneration){
-        fillArray(cubeBuffer,32);
+        emptyArray(cubeBuffer, 32);
         genRotationMatrix(rotationMatrix,rX,rY,rZ);
         for (int i = 0; i < 32; i+=4) {
             multiplyVectorMatrix(cube,rotationMatrix,i,cubeBuffer,i);
+            //std::cout << i/4 << ": " << cubeBuffer[i] << ", " << cubeBuffer[i+1] << ", " << cubeBuffer[i+2] << std::endl;
             addToAllVectorElements(cubeBuffer,2.F,i);
             multiplyVectorScalar(cubeBuffer, LEN, i);
-
         }
+        //debugArray(cubeBuffer,32);
         draw(cubeBuffer, lineIndexes, indexBound,color);
-        rX += 0.005F;
-        rY += 0.005F;
-        rZ += 0.005F;
+        rX += 0.009F;
+        rY += 0.012F;
+        rZ += 0.015F;
         std::this_thread::sleep_for(std::chrono::milliseconds (10));
         draw(cubeBuffer, lineIndexes, indexBound,clearColor);
     }
+
 }
 
-void fillArray(float array[], int len){
+void emptyArray(float array[], int len){
     for (int i = 0; i < len; ++i) {
         array[i] = 0;
     }
@@ -106,23 +111,35 @@ void genRotationMatrix(float dest[], float rX, float rY, float rZ){
     dest[15] = 1;
 }
 
-void draw(float data[], const int indexes[], int indexBound, COLORREF color ) {
+void debugArray(const float arr[], int len){
+    std::cout << "ARRAY: ";
+    for (int i = 0; i < len; ++i) {
+        std::cout << i << "=" << arr[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+void draw(const float data[], const int indexes[], int indexBound, COLORREF color ) {
 
     for(int i = 0; i < indexBound; i+=2){
         int i1 = indexes[i]*4, i2 = indexes[i+1]*4;
         float l1x = data[i1], l1y = data[i1 + 1], l2x = data[i2], l2y = data[i2 + 1];
-        //l1x*=0.5F*len;l1y*=0.5F*len;l2x*=0.5F*len;l2y*=0.5F*len;
-        float x1 = std::min(l1x,l2x),y1 = std::min(l2x,l2y),x2 = std::max(l1x,l2x),y2 = std::max(l1y,l2y);
-
+        float x1 = l1x,y1 = l1y,x2 = l2x,y2 = l2y;
         float dx = x2-x1, dy = y2-y1;
+        /*std::cout << i/2 << ": \ni: " << i1 << "->" << i2 << std::endl
+        << x1 << ", " << y1 << " -> " << x2 << ", " << y2 << std::endl << " (" << l1x << "," << l1y << "->"
+        << l2x << "," << l2y << ")" << std::endl << std::endl;*/
+
         if(dx > dy){
-            for (int x = x1; x < x2; ++x) {
+            if(x1 > x2){x1 = l2x; y1 = l2y; x2 = l1x; y2 = l2y;}
+            for (float x = x1; x < x2; x+=1) {
                 float y = y1 + dy * (x - x1)/dx;
                 if(x < 0 || y < 0){continue;}
                 SetPixel(hdc, x, y, color);
             }
         } else {
-            for (int y = y1; y < y2; ++y) {
+            if(y1 > y2){y1 = l2y; x1 = l2x; y2 = l1y; x2 = l1x;}
+            for (float y = y1; y < y2; y+= 1) {
                 float x = x1 + dx * (y - y1)/dy;
                 if(x < 0 || y < 0){continue;}
                 SetPixel(hdc, x, y, color);
